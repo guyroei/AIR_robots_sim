@@ -482,3 +482,25 @@ class MotionExecutor:
         self.moveL(agent, (x, y, start_height), speed=3., tolerance=0.005, max_steps=400)
 
         return occupied
+
+    # TODO: Add documentation
+    def stack(self, agent, block_positions, stack_target_location):
+        start_height = 0.15
+        block_height = 0.05
+        height = 0.03
+        for block_pos in block_positions:
+            '''
+            move_to = [1.305356658502026, -0.7908733209856437, 1.4010098471710881, 4.102251451313659,
+                       -1.5707962412281837, -0.26543967541515895]
+            executor.moveJ("ur5e_2", move_to)
+            '''
+            xyz_src = [block_pos[0], block_pos[1], start_height]
+            self.plan_and_move_to_xyz_facing_down(agent, xyz_src)
+            self.pick_up(agent, xyz_src[0], xyz_src[1], xyz_src[2])
+            xyz_dst = [stack_target_location[0], stack_target_location[1], stack_target_location[2] + height]
+            self.plan_and_move_to_xyz_facing_down(agent, xyz_dst)
+            self.put_down(agent, xyz_dst[0], xyz_dst[1], xyz_dst[2])
+            height += block_height
+            block_pos[2] += height
+            self.wait(3)
+

@@ -25,6 +25,7 @@ executor = MotionExecutor(env)
 env.reset(randomize=False, block_positions=block_position)
 
 # moveJ is utilized when the robot's joints are clear to you but use carefully because there is no planning here
+'''
 move_to = [1.305356658502026, -0.7908733209856437, 1.4010098471710881, 4.102251451313659, -1.5707962412281837, -0.26543967541515895]
 executor.moveJ("ur5e_2", move_to)
 
@@ -34,7 +35,9 @@ executor.plan_and_move_to_xyz_facing_down("ur5e_2", [-0.7, -0.7, 0.15])
 executor.put_down("ur5e_2", -0.7, -0.7, 0.20)
 
 executor.wait(4)
-
+'''
+target_location = [-0.7, -0.5, 0.03]
+executor.stack("ur5e_2", block_position, target_location)
 
 
 
