@@ -12,10 +12,10 @@ workspace_y_lims = [-1.0, -0.45]
 # You can choose any location in the area to place the blocks
 
 block_position = [
-    [-0.7, -0.6, 0.03],
-    [-0.7, -0.7, 0.03],
-    [-0.7, -0.8, 0.03],
-    [-0.7, -0.9, 0.03]]
+    [-0.7, -0.6, 0.0],
+    [-0.7, -0.6, 0.05],
+    [-0.7, -0.6, 0.1],
+    [-0.7, -0.9, 0.0]]
 
 # Create the simulation environment and the executor
 env = SimEnv()
@@ -36,7 +36,7 @@ executor.put_down("ur5e_2", -0.7, -0.7, 0.20)
 
 executor.wait(4)
 '''
-target_location = [-0.7, -0.5, 0.03]
+target_location = [-0.7, -0.9]
 executor.stack("ur5e_2", block_position, target_location)
 
 
