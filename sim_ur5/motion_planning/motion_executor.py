@@ -508,3 +508,44 @@ class MotionExecutor:
             block_pos[2] = height
             self.wait(3)
 
+    # TODO: Add documentation
+    def block_transfer(self, agent1, agent2, block_position):
+        """
+        workspace_x_lims = [-1.0, -0.45]
+        workspace_y_lims = [-1.0, -0.45]
+        """
+        start_height = 0.15
+        "pick up the block with the first robot"
+        xyz_src = [block_position[0], block_position[1], block_position[2] + start_height]
+        #self.plan_and_move_to_xyz_facing_down(agent2, xyz_src)
+        #print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+        self.plan_and_move_to_xyz_facing_down(agent1, xyz_src)
+        self.pick_up(agent1, xyz_src[0], xyz_src[1], xyz_src[2])
+        #agent2_position = self.env.get_agent_joint(agent2)
+        #print(agent2_position)
+        "find an empty spot for the transfer"
+        all_blocks_positions = self.env.get_block_positions()
+        all_blocks_positions_x = []
+        all_blocks_positions_y = []
+        for pos in all_blocks_positions:
+            all_blocks_positions_x.append(pos[0])
+            all_blocks_positions_y.append(pos[1])
+        print("all: ", all_blocks_positions, "x: ", all_blocks_positions_x, "y: ", all_blocks_positions_y)
+        x = -0.6
+        y = -0.6
+        while x > -1:
+            while y > -1:
+                if y not in all_blocks_positions_y:
+                    break
+                y -= 0.05
+            if x not in all_blocks_positions_x:
+                break
+            x -= 0.05
+        #xyz_dst = [x, y, start_height]
+        xyz_dst = [-0.46, -0.46, start_height]
+        "transfer the block from the first robot to the second robot"
+        self.plan_and_move_to_xyz_facing_down(agent1, xyz_dst)
+        # self.put_down(agent1, xyz_dst[0], xyz_dst[1], xyz_dst[2] + block_height)
+        self.plan_and_move_to_xyz_facing_down(agent2, xyz_dst)
+        self.wait(3)
+
