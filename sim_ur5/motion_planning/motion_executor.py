@@ -11,6 +11,17 @@ FACING_DOWN_R = [[1, 0, 0],
                  [0, -1, 0],
                  [0, 0, -1]]
 
+FACING_UP_R = [[1, 0, 0],
+                 [0, 1, 0],
+                 [0, 0, 1]]
+
+FACING_RIGHT_R = [[1, 0, 0],
+                 [0, 0, -1],
+                 [0, 1, 0]]
+
+FACING_LEFT_R = [[1, 0, 0],
+                 [0, 0, 1],
+                 [0, -1, 0]]
 
 def compose_transformation_matrix(rotation, translation):
     # Set the upper-left 3x3 part to the rotation matrix
@@ -265,10 +276,61 @@ class MotionExecutor:
         self.moveJ_path(robot_name, path, speed, acceleration, blend_radius=blend_radius, tolerance=tolerance)
         return True
 
+
+    def plan_and_move_to_xyz_facing_left(self, robot_name, target_xyz, speed=1.0, acceleration=1.0, blend_radius=0.05,
+                                         tolerance=0.003, max_planning_time=5, max_length_to_distance_ratio=2,
+                                         cannonized_config=True):
+        target_transform = compose_transformation_matrix(FACING_LEFT_R, target_xyz)
+        goal_config = self.facing_down_ik(robot_name, target_transform, max_tries=50)
+
+        logging.info(f"Planning and moving to xyz facing down {robot_name} from"
+                     f" {self.env.robots_joint_pos[robot_name]} to {goal_config}"
+                     f" target: {target_xyz}")
+
+        if goal_config is None or len(goal_config) == 0:
+            print(f"WARNING: IK solution not found for {robot_name}")
+
+        if cannonized_config:
+            goal_config = canonize_config(goal_config)
+
+        return self.plan_and_moveJ(robot_name=robot_name,
+                                   target_joints=goal_config,
+                                   speed=speed,
+                                   acceleration=acceleration,
+                                   blend_radius=blend_radius,
+                                   tolerance=tolerance,
+                                   max_planning_time=max_planning_time,
+                                   max_length_to_distance_ratio=max_length_to_distance_ratio)
+
     def plan_and_move_to_xyz_facing_down(self, robot_name, target_xyz, speed=1.0, acceleration=1.0, blend_radius=0.05,
                                          tolerance=0.003, max_planning_time=5, max_length_to_distance_ratio=2,
                                          cannonized_config=True):
         target_transform = compose_transformation_matrix(FACING_DOWN_R, target_xyz)
+        goal_config = self.facing_down_ik(robot_name, target_transform, max_tries=50)
+
+        logging.info(f"Planning and moving to xyz facing down {robot_name} from"
+                     f" {self.env.robots_joint_pos[robot_name]} to {goal_config}"
+                     f" target: {target_xyz}")
+
+        if goal_config is None or len(goal_config) == 0:
+            print(f"WARNING: IK solution not found for {robot_name}")
+
+        if cannonized_config:
+            goal_config = canonize_config(goal_config)
+
+        return self.plan_and_moveJ(robot_name=robot_name,
+                                   target_joints=goal_config,
+                                   speed=speed,
+                                   acceleration=acceleration,
+                                   blend_radius=blend_radius,
+                                   tolerance=tolerance,
+                                   max_planning_time=max_planning_time,
+                                   max_length_to_distance_ratio=max_length_to_distance_ratio)
+
+    def plan_and_move_to_xyz_facing_right(self, robot_name, target_xyz, speed=1.0, acceleration=1.0, blend_radius=0.05,
+                                         tolerance=0.003, max_planning_time=5, max_length_to_distance_ratio=2,
+                                         cannonized_config=True):
+        target_transform = compose_transformation_matrix(FACING_RIGHT_R, target_xyz)
         goal_config = self.facing_down_ik(robot_name, target_transform, max_tries=50)
 
         logging.info(f"Planning and moving to xyz facing down {robot_name} from"
@@ -514,23 +576,27 @@ class MotionExecutor:
         workspace_x_lims = [-1.0, -0.45]
         workspace_y_lims = [-1.0, -0.45]
         """
+        block_height = 0.05
         start_height = 0.15
-        "pick up the block with the first robot"
-        xyz_src = [block_position[0], block_position[1], block_position[2] + start_height]
-        #self.plan_and_move_to_xyz_facing_down(agent2, xyz_src)
-        #print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-        self.plan_and_move_to_xyz_facing_down(agent1, xyz_src)
-        self.pick_up(agent1, xyz_src[0], xyz_src[1], xyz_src[2])
-        #agent2_position = self.env.get_agent_joint(agent2)
-        #print(agent2_position)
-        "find an empty spot for the transfer"
+        target_height = 0.17
         all_blocks_positions = self.env.get_block_positions()
         all_blocks_positions_x = []
         all_blocks_positions_y = []
         for pos in all_blocks_positions:
             all_blocks_positions_x.append(pos[0])
             all_blocks_positions_y.append(pos[1])
-        print("all: ", all_blocks_positions, "x: ", all_blocks_positions_x, "y: ", all_blocks_positions_y)
+            if pos[0] == block_position[0] and pos[1] == block_position[1]:
+                if pos[2] > block_position[2]:
+                    print("Invalid start position - there are other blocks on top of the desired one")
+                    return -1
+        # print("all: ", all_blocks_positions, "x: ", all_blocks_positions_x, "y: ", all_blocks_positions_y)
+        "pick up the block with the first robot"
+        xyz_src = [block_position[0], block_position[1], block_position[2] + start_height]
+        xyz_dst = [-0.46, -0.46, target_height]
+        self.plan_and_move_to_xyz_facing_left(agent2, xyz_dst)
+        self.plan_and_move_to_xyz_facing_down(agent1, xyz_src)
+        self.pick_up(agent1, xyz_src[0], xyz_src[1], xyz_src[2])
+        "find an empty spot for the transfer"
         x = -0.6
         y = -0.6
         while x > -1:
@@ -542,10 +608,8 @@ class MotionExecutor:
                 break
             x -= 0.05
         #xyz_dst = [x, y, start_height]
-        xyz_dst = [-0.46, -0.46, start_height]
+        xyz_dst = [-0.46, -0.52, target_height]
         "transfer the block from the first robot to the second robot"
-        self.plan_and_move_to_xyz_facing_down(agent1, xyz_dst)
-        # self.put_down(agent1, xyz_dst[0], xyz_dst[1], xyz_dst[2] + block_height)
-        self.plan_and_move_to_xyz_facing_down(agent2, xyz_dst)
+        self.plan_and_move_to_xyz_facing_right(agent1, xyz_dst)
         self.wait(3)
 

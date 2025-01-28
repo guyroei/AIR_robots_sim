@@ -38,7 +38,7 @@ executor.wait(4)
 '''
 #target_location = [-0.7, -0.9]
 #executor.stack("ur5e_2", block_position, target_location)
-start_position = block_position[3]
+start_position = block_position[2]
 executor.block_transfer("ur5e_2", "ur5e_1", start_position)
 
 
