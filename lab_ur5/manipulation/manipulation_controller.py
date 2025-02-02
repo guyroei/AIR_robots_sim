@@ -281,6 +281,32 @@ class ManipulationController(RobotInterfaceWithGripper):
         # update the motion planner with the new configuration:
         self.update_mp_with_current_config()
 
+        # TODO: Add documentation
+    def stack(self, block_positions, stack_target_location):
+        start_height = 0.15
+        block_height = 0.05
+        height = 0
+        height_sorted_block_positions = sorted(block_positions, reverse=True, key=lambda x: x[2])
+        "calculate initial height"
+        for block_pos in height_sorted_block_positions:
+            "check if the block is already at the target location"
+            if (block_pos[0] == stack_target_location[0] and block_pos[1] == stack_target_location[1]):
+                height += block_height
+        for block_pos in height_sorted_block_positions:
+            if (block_pos[0] == stack_target_location[0] and block_pos[1] == stack_target_location[1]):
+                continue
+            xyz_src = [block_pos[0], block_pos[1], block_pos[2] + start_height]
+            rz_src = 1.5 * np.pi
+            self.plan_and_move_to_xyzrz(xyz_src[0], xyz_src[1], xyz_src[2], rz_src)
+            self.pick_up(xyz_src[0], xyz_src[1], rz_src, xyz_src[2])
+            xyz_dst = [stack_target_location[0], stack_target_location[1], height + block_height]
+            rz_dst = 1.5 * np.pi
+            self.plan_and_move_to_xyzrz(xyz_dst[0], xyz_dst[1], xyz_dst[2], rz_dst)
+            self.put_down(xyz_dst[0], xyz_dst[1], rz_dst, xyz_dst[2] + block_height)
+            height += block_height
+            block_pos[2] = height
+            self.wait(3)
+
     # def sense_height(self, x, y, start_height=0.2):
     #     """
     #     :param x:

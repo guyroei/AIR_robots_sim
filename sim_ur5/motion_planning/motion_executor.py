@@ -559,7 +559,6 @@ class MotionExecutor:
         for block_pos in height_sorted_block_positions:
             if(block_pos[0] == stack_target_location[0] and block_pos[1] == stack_target_location[1]):
                 continue
-            print(height)
             xyz_src = [block_pos[0], block_pos[1], block_pos[2] + start_height]
             self.plan_and_move_to_xyz_facing_down(agent, xyz_src)
             self.pick_up(agent, xyz_src[0], xyz_src[1], xyz_src[2])
