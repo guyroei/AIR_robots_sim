@@ -13,16 +13,18 @@ workspace_y_lims = [-1.0, -0.45]
 
 block_position = [
     [-0.7, -0.6, 0.0],
-    [-0.7, -0.6, 0.05],
-    [-0.7, -0.6, 0.1],
+    [-0.7, -0.7, 0.0],
+    [-0.7, -0.8, 0.0],
     [-0.7, -0.9, 0.0]]
 
+
+initial_block_position = [[-1, -1, 0.0]]
 # Create the simulation environment and the executor
 env = SimEnv()
 executor = MotionExecutor(env)
 
 # Add blocks to the world by enabling the randomize argument and setting the block position in the reset function of the SimEnv class 
-env.reset(randomize=False, block_positions=block_position)
+env.reset(randomize=False, block_positions=initial_block_position)
 
 # moveJ is utilized when the robot's joints are clear to you but use carefully because there is no planning here
 '''
@@ -36,10 +38,15 @@ executor.put_down("ur5e_2", -0.7, -0.7, 0.20)
 
 executor.wait(4)
 '''
-#target_location = [-0.7, -0.9]
-#executor.stack("ur5e_2", block_position, target_location)
-start_position = block_position[2]
-executor.block_transfer("ur5e_2", "ur5e_1", start_position)
+
+
+"uncomment the function if want to run and change block_positions=block_position in the reset"
+target_location = [-0.7, -0.6]
+#executor.stack("ur5e_2", block_position, target_location,initial_block_positions)
+
+"uncomment the function if want to run and change block_positions=initial_block_position in the reset"
+start_position = initial_block_position[0]
+#executor.block_transfer("ur5e_2", "ur5e_1", start_position)
 
 
 

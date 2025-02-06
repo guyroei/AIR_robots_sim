@@ -116,6 +116,30 @@ class GeometryAndTransforms:
 
         return np.concatenate([point_robot, r])
 
+    "we added handling to the cases where we needed the robot to face left and right."
+    def get_gripper_6d_pose_robot_frame(self, robot_name, point_world, rz, direction="down"):
+        """
+        Returns a 6D pose in the robot frame where the gripper faces the specified direction.
+        """
+        point_robot = self.point_world_to_robot(robot_name, point_world)
+
+        # Define base rotation based on direction
+        if direction == "down":
+            rotation_base = R.from_euler('xyz', [np.pi, 0, 0])
+        elif direction == "left":
+            rotation_base = R.from_euler('xyz', [np.pi / 2, 0, 0]) #change accordingly!
+        elif direction == "right":
+            rotation_base = R.from_euler('xyz', [0, -np.pi / 2, 0]) #change accordingly!
+        else:
+            raise ValueError("Invalid direction.")
+
+        rotation_z = R.from_euler('z', rz)
+        combined_rotation = rotation_z * rotation_base
+
+        r = combined_rotation.as_rotvec(degrees=False)
+
+        return np.concatenate([point_robot, r])
+
     def get_tilted_pose_6d_for_sensing(self, robot_name, point_world):
         """
         Returns a pose in the robot frame where the gripper is tilted for sensing

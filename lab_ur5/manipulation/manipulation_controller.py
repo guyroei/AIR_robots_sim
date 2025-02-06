@@ -171,7 +171,8 @@ class ManipulationController(RobotInterfaceWithGripper):
 
         self.plan_and_moveJ(home_config, speed, acceleration)
 
-    def plan_and_move_to_xyzrz(self, x, y, z, rz, speed=None, acceleration=None, visualise=True,
+    "we added handling to the cases where we needed the robot to face left and right."
+    def plan_and_move_to_xyzrz(self, x, y, z, rz,direction="down", speed=None, acceleration=None, visualise=True,
                                for_down_movement=True):
         """
         if for_down_movement is True, there will be a heuristic check that tha shoulder is not facing down, so when
@@ -183,10 +184,18 @@ class ManipulationController(RobotInterfaceWithGripper):
             speed = self.speed
         if acceleration is None:
             acceleration = self.acceleration
+        if direction == "down":
+            target_pose_robot = self.gt.get_gripper_6d_pose_robot_frame(self.robot_name,[x, y, z],rz,"down")
+            for_down_movement = True
+        elif direction == "left":
+            target_pose_robot = self.gt.get_gripper_6d_pose_robot_frame(self.robot_name,[x, y, z],rz,"left")
+            for_down_movement = False
+        elif direction == "right":
+            target_pose_robot = self.gt.get_gripper_6d_pose_robot_frame(self.robot_name,[x, y, z],rz,"right")
+            for_down_movement = False
+        else:
+            raise ValueError("Invalid direction.")
 
-        target_pose_robot = self.gt.get_gripper_facing_downwards_6d_pose_robot_frame(self.robot_name,
-                                                                                     [x, y, z],
-                                                                                     rz)
         logging.info(f"{self.robot_name} planning and moving to xyzrz={x}{y}{z}{rz}. "
                      f"pose in robot frame:{target_pose_robot}")
 
@@ -281,10 +290,18 @@ class ManipulationController(RobotInterfaceWithGripper):
         # update the motion planner with the new configuration:
         self.update_mp_with_current_config()
 
-        # TODO: Add documentation
+    '''
+    This function takes a list of block positions and moves them to the given target location,
+    ensuring a stable and accurate stack formation.
+
+    Parameters:
+    block_positions (list of lists): A list of block positions, where each position is represented as [x, y, z] coordinates.
+    stack_target_location (list): A list representing the target location [x, y] where the blocks should be stacked.                
+    '''
     def stack(self, block_positions, stack_target_location):
+
         start_height = 0.15
-        block_height = 0.05
+        block_height = 0.04
         height = 0
         height_sorted_block_positions = sorted(block_positions, reverse=True, key=lambda x: x[2])
         "calculate initial height"
@@ -292,20 +309,23 @@ class ManipulationController(RobotInterfaceWithGripper):
             "check if the block is already at the target location"
             if (block_pos[0] == stack_target_location[0] and block_pos[1] == stack_target_location[1]):
                 height += block_height
+        "Iterate through each block and move it to the stack target location"
         for block_pos in height_sorted_block_positions:
+            "Skip blocks that are already at the target location"
             if (block_pos[0] == stack_target_location[0] and block_pos[1] == stack_target_location[1]):
                 continue
             xyz_src = [block_pos[0], block_pos[1], block_pos[2] + start_height]
-            rz_src = 1.5 * np.pi
-            self.plan_and_move_to_xyzrz(xyz_src[0], xyz_src[1], xyz_src[2], rz_src)
-            self.pick_up(xyz_src[0], xyz_src[1], rz_src, xyz_src[2])
+            rz = 0
+            self.plan_and_move_to_xyzrz(xyz_src[0], xyz_src[1], xyz_src[2], rz)
+            self.pick_up(xyz_src[0], xyz_src[1], rz, xyz_src[2])
             xyz_dst = [stack_target_location[0], stack_target_location[1], height + block_height]
-            rz_dst = 1.5 * np.pi
-            self.plan_and_move_to_xyzrz(xyz_dst[0], xyz_dst[1], xyz_dst[2], rz_dst)
-            self.put_down(xyz_dst[0], xyz_dst[1], rz_dst, xyz_dst[2] + block_height)
+            self.plan_and_move_to_xyzrz(xyz_dst[0], xyz_dst[1], xyz_dst[2], rz)
+            self.put_down(xyz_dst[0], xyz_dst[1], rz, xyz_dst[2])
+            "Update the height of the stack and block height after placing the block"
             height += block_height
             block_pos[2] = height
-            self.wait(3)
+
+
 
     # def sense_height(self, x, y, start_height=0.2):
     #     """

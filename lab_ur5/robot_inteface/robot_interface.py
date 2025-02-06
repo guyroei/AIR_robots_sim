@@ -63,7 +63,7 @@ class RobotInterfaceWithGripper(RobotInterface):
 
     def release_grasp(self, wait_time=0.5):
         logging.debug(f"Releasing grasp ({self._ip}), max_width: {self.max_width}")
-        res = self.gripper.twofg_grip_external(self.max_width, 20, 100)
+        res = self.gripper.twofg_grip_external(self.max_width, 20, 80)
         if res != 0:
             logging.warning(f"Failed to release grasp ({self._ip})")
         time.sleep(wait_time)

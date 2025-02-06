@@ -546,17 +546,52 @@ class MotionExecutor:
         return occupied
 
     # TODO: Add documentation
-    def stack(self, agent, block_positions, stack_target_location):
+
+    def place_at_positions(self, agent, block_positions, initial_block_positions):
+        """
+        Distributes blocks from their initial stacked position to their target block positions.
+        Assumes blocks start at specific initial positions and need to be moved to new positions.
+        """
+        start_height = 0.15  # Initial picking height
+        block_height = 0.05  # Height of each block
+
+        # Sort initial block positions by height in descending order to pick from top first
+        height_sorted_initial_positions = sorted(initial_block_positions, reverse=True, key=lambda x: x[2])
+
+        for i, block_pos in enumerate(block_positions):
+            xyz_src = [height_sorted_initial_positions[i][0], height_sorted_initial_positions[i][1],
+                       height_sorted_initial_positions[i][2] + start_height]  # Pick-up position
+            self.plan_and_move_to_xyz_facing_down(agent, xyz_src)
+            self.pick_up(agent, xyz_src[0], xyz_src[1], xyz_src[2])
+
+            xyz_dst = [block_pos[0], block_pos[1], block_pos[2] + block_height]  # Drop position
+            self.plan_and_move_to_xyz_facing_down(agent, xyz_dst)
+            self.put_down(agent, xyz_dst[0], xyz_dst[1], xyz_dst[2])
+
+            self.wait(2)  # Small delay to simulate realistic movement
+
+    '''
+    This function takes a list of block positions and moves them to the given target location,
+    ensuring a stable and accurate stack formation.
+
+    Parameters:
+    block_positions (list of lists): A list of block positions, where each position is represented as [x, y, z] coordinates.
+    stack_target_location (list): A list representing the target location [x, y] where the blocks should be stacked.                
+    '''
+    def stack(self, agent, block_positions, stack_target_location,initial_block_positions):
         start_height = 0.15
         block_height = 0.05
         height = 0
+        #self.place_at_positions(agent,block_positions,initial_block_positions)
         height_sorted_block_positions = sorted(block_positions, reverse=True, key=lambda x: x[2])
         "calculate initial height"
         for block_pos in height_sorted_block_positions:
             "check if the block is already at the target location"
             if(block_pos[0] == stack_target_location[0] and block_pos[1] == stack_target_location[1]):
                 height += block_height
+        "Iterate through each block and move it to the stack target location"
         for block_pos in height_sorted_block_positions:
+            "Skip blocks that are already at the target location"
             if(block_pos[0] == stack_target_location[0] and block_pos[1] == stack_target_location[1]):
                 continue
             xyz_src = [block_pos[0], block_pos[1], block_pos[2] + start_height]
@@ -564,51 +599,34 @@ class MotionExecutor:
             self.pick_up(agent, xyz_src[0], xyz_src[1], xyz_src[2])
             xyz_dst = [stack_target_location[0], stack_target_location[1], height + block_height]
             self.plan_and_move_to_xyz_facing_down(agent, xyz_dst)
-            self.put_down(agent, xyz_dst[0], xyz_dst[1], xyz_dst[2] + block_height)
+            self.put_down(agent, xyz_dst[0], xyz_dst[1], xyz_dst[2]) #removed +block_height?????????
+            xyz_dst = [stack_target_location[0], stack_target_location[1], height + 2*block_height]
+            self.plan_and_move_to_xyz_facing_down(agent, xyz_dst)
+            "Update the height of the stack and block height after placing the block"
             height += block_height
             block_pos[2] = height
             self.wait(3)
 
-    # TODO: Add documentation
+    '''
+    This function moves a block from a pickup position using the first robot, hands it over to the second robot, simple touch of both endeffector is enough.
+
+    Parameters:
+    pickup_position (list): A list representing the pickup position [x, y, z] of the block.
+    '''
     def block_transfer(self, agent1, agent2, block_position):
-        """
-        workspace_x_lims = [-1.0, -0.45]
-        workspace_y_lims = [-1.0, -0.45]
-        """
         block_height = 0.05
         start_height = 0.15
-        target_height = 0.17
-        all_blocks_positions = self.env.get_block_positions()
-        all_blocks_positions_x = []
-        all_blocks_positions_y = []
-        for pos in all_blocks_positions:
-            all_blocks_positions_x.append(pos[0])
-            all_blocks_positions_y.append(pos[1])
-            if pos[0] == block_position[0] and pos[1] == block_position[1]:
-                if pos[2] > block_position[2]:
-                    print("Invalid start position - there are other blocks on top of the desired one")
-                    return -1
-        # print("all: ", all_blocks_positions, "x: ", all_blocks_positions_x, "y: ", all_blocks_positions_y)
+        target_height = 0.2
         "pick up the block with the first robot"
         xyz_src = [block_position[0], block_position[1], block_position[2] + start_height]
-        xyz_dst = [-0.46, -0.46, target_height]
-        self.plan_and_move_to_xyz_facing_left(agent2, xyz_dst)
         self.plan_and_move_to_xyz_facing_down(agent1, xyz_src)
         self.pick_up(agent1, xyz_src[0], xyz_src[1], xyz_src[2])
-        "find an empty spot for the transfer"
-        x = -0.6
-        y = -0.6
-        while x > -1:
-            while y > -1:
-                if y not in all_blocks_positions_y:
-                    break
-                y -= 0.05
-            if x not in all_blocks_positions_x:
-                break
-            x -= 0.05
-        #xyz_dst = [x, y, start_height]
-        xyz_dst = [-0.46, -0.52, target_height]
+        xyz_dst = [-0.46, -0.55, target_height] #this point is located within the boundaries of both robots
         "transfer the block from the first robot to the second robot"
+        self.plan_and_move_to_xyz_facing_right(agent1, xyz_dst)
+        xyz_dst = [-0.46, -0.46, target_height]
+        self.plan_and_move_to_xyz_facing_left(agent2, xyz_dst)
+        xyz_dst = [-0.46, -0.515, target_height]
         self.plan_and_move_to_xyz_facing_right(agent1, xyz_dst)
         self.wait(3)
 
